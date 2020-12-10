@@ -10,14 +10,7 @@ Detector::Detector() : _nms(0.4),
 {
 }
 
-inline void Detector::Release()
-{
-    if (Net != nullptr)
-    {
-        delete Net;
-        Net = nullptr;
-    }
-}
+
 
 Detector::Detector(const std::string &model_param, const std::string &model_bin, bool retinaface) : _nms(0.4),
                                                                                                     _threshold(0.6),
@@ -25,16 +18,35 @@ Detector::Detector(const std::string &model_param, const std::string &model_bin,
                                                                                                     _retinaface(retinaface),
                                                                                                     Net(new ncnn::Net())
 {
-    Init(model_param, model_bin);
+    loadModel(model_param, model_bin);
 }
 
-void Detector::Init(const std::string &model_param, const std::string &model_bin)
+void Detector::loadModel(const std::string &model_param, const std::string &model_bin)
 {
     int ret = Net->load_param(model_param.c_str());
     ret = Net->load_model(model_bin.c_str());
 }
 
-void Detector::Detect(cv::Mat &bgr, std::vector<bbox> &boxes)
+void Detector::releaseModels (){
+    Net->clear();
+}
+
+// inline void Detector::Release()
+// {
+//     if (Net != nullptr)
+//     {
+//         delete Net;
+//         Net = nullptr;
+//     }
+// }
+
+Detector::~Detector()
+{
+    // Release();
+    Detector::releaseModels();
+
+}
+void Detector::Detect(cv::Mat &bgr, std::vector<FaceCrop> &boxes)
 {
     Timer timer;
     timer.tic();
@@ -62,13 +74,13 @@ void Detector::Detect(cv::Mat &bgr, std::vector<bbox> &boxes)
 
     timer.toc("det:");
 
-    std::vector<box> anchor;
+    std::vector<boubox> anchor;
     timer.tic();
     if (_retinaface)
         create_anchor_retinaface(anchor, bgr.cols, bgr.rows);
     timer.toc("anchor:");
     // cout << out.channel(0) << endl;
-    std::vector<bbox> total_box;
+    std::vector<FaceCrop> total_box;
     float *ptr = out.channel(0);
     float *ptr1 = out1.channel(0);
     float *landms = out2.channel(0);
@@ -80,9 +92,9 @@ void Detector::Detect(cv::Mat &bgr, std::vector<bbox> &boxes)
     {
         if (*(ptr1 + 1) > _threshold)
         {
-            box tmp = anchor[i];
-            box tmp1;
-            bbox result;
+            boubox tmp = anchor[i];
+            boubox tmp1;
+            FaceCrop result;
 
             // loc and conf
             tmp1.cx = tmp.cx + *ptr * 0.1 * tmp.sx;
@@ -102,14 +114,14 @@ void Detector::Detect(cv::Mat &bgr, std::vector<bbox> &boxes)
             result.y2 = (tmp1.cy + tmp1.sy / 2) * in.h;
             if (result.y2 > in.h)
                 result.y2 = in.h;
-            result.s = *(ptr1 + 1);
+            result.face_score = *(ptr1 + 1);
             result.mask_score = *(mask + 1);
 
             // landmark
             for (int j = 0; j < 5; ++j)
-            {
-                result.point[j]._x = (tmp.cx + *(landms + (j << 1)) * 0.1 * tmp.sx) * in.w;
-                result.point[j]._y = (tmp.cy + *(landms + (j << 1) + 1) * 0.1 * tmp.sy) * in.h;
+            {   
+                result.lmks.push_back((tmp.cx + *(landms + (j << 1)) * 0.1 * tmp.sx) * in.w);
+                result.lmks.push_back((tmp.cy + *(landms + (j << 1) + 1) * 0.1 * tmp.sy) * in.h);
             }
 
             total_box.push_back(result);
@@ -130,9 +142,9 @@ void Detector::Detect(cv::Mat &bgr, std::vector<bbox> &boxes)
     }
 }
 
-inline bool Detector::cmp(bbox a, bbox b)
+inline bool Detector::cmp(FaceCrop a, FaceCrop b)
 {
-    if (a.s > b.s)
+    if (a.face_score > b.face_score)
         return true;
     return false;
 }
@@ -147,12 +159,9 @@ inline void Detector::SetDefaultParams()
     Net = nullptr;
 }
 
-Detector::~Detector()
-{
-    Release();
-}
 
-void Detector::create_anchor_retinaface(std::vector<box> &anchor, int w, int h)
+
+void Detector::create_anchor_retinaface(std::vector<boubox> &anchor, int w, int h)
 {
     //    anchor.reserve(num_boxes);
     anchor.clear();
@@ -186,7 +195,7 @@ void Detector::create_anchor_retinaface(std::vector<box> &anchor, int w, int h)
                     float s_ky = min_size[l] * 1.0 / h;
                     float cx = (j + 0.5) * steps[k] / w;
                     float cy = (i + 0.5) * steps[k] / h;
-                    box axil = {cx, cy, s_kx, s_ky};
+                    boubox axil = {cx, cy, s_kx, s_ky};
                     anchor.push_back(axil);
                 }
             }
@@ -194,7 +203,7 @@ void Detector::create_anchor_retinaface(std::vector<box> &anchor, int w, int h)
     }
 }
 
-void Detector::nms(std::vector<bbox> &input_boxes, float NMS_THRESH)
+void Detector::nms(std::vector<FaceCrop> &input_boxes, float NMS_THRESH)
 {
     std::vector<float> vArea(input_boxes.size());
     for (int i = 0; i < int(input_boxes.size()); ++i)

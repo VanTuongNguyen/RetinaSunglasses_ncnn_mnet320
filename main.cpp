@@ -51,7 +51,7 @@ int main(int argc, char **argv)
         cv::resize(src, img_scale, cv::Size(src.cols * scale, src.rows * scale));
         // cout << img_scale.size()<< endl;
         // cv::imshow("as", src);
-        std::vector<bbox> boxes;
+        std::vector<FaceCrop> boxes;
 
         timer.tic();
 
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         {
             cv::Rect rect(boxes[j].x1 / scale, boxes[j].y1 / scale, boxes[j].x2 / scale - boxes[j].x1 / scale, boxes[j].y2 / scale - boxes[j].y1 / scale);
             char test[80];
-            sprintf(test, "%.4f", boxes[j].s);
+            sprintf(test, "%.4f", boxes[j].face_score);
             char mask[80];
             sprintf(mask, "%.4f", boxes[j].mask_score);
             float mask_threshold = 0;
@@ -78,11 +78,11 @@ int main(int argc, char **argv)
             }
             cv::putText(img, test, cv::Size((boxes[j].x1 / scale), boxes[j].y1 / scale), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(0, 255, 255));
             cv::putText(img, mask, cv::Size((boxes[j].x2 / scale), boxes[j].y2 / scale), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(0, 255, 0));
-            cv::circle(img, cv::Point(boxes[j].point[0]._x / scale, boxes[j].point[0]._y / scale), 1, cv::Scalar(0, 0, 225), 4);
-            cv::circle(img, cv::Point(boxes[j].point[1]._x / scale, boxes[j].point[1]._y / scale), 1, cv::Scalar(0, 255, 225), 4);
-            cv::circle(img, cv::Point(boxes[j].point[2]._x / scale, boxes[j].point[2]._y / scale), 1, cv::Scalar(255, 0, 225), 4);
-            cv::circle(img, cv::Point(boxes[j].point[3]._x / scale, boxes[j].point[3]._y / scale), 1, cv::Scalar(0, 255, 0), 4);
-            cv::circle(img, cv::Point(boxes[j].point[4]._x / scale, boxes[j].point[4]._y / scale), 1, cv::Scalar(255, 0, 0), 4);
+            cv::circle(img, cv::Point(boxes[j].lmks[0] / scale, boxes[j].lmks[1] / scale), 1, cv::Scalar(0, 0, 225), 4);
+            cv::circle(img, cv::Point(boxes[j].lmks[2] / scale, boxes[j].lmks[3] / scale), 1, cv::Scalar(0, 255, 225), 4);
+            cv::circle(img, cv::Point(boxes[j].lmks[4] / scale, boxes[j].lmks[5] / scale), 1, cv::Scalar(255, 0, 225), 4);
+            cv::circle(img, cv::Point(boxes[j].lmks[6] / scale, boxes[j].lmks[7] / scale), 1, cv::Scalar(0, 255, 0), 4);
+            cv::circle(img, cv::Point(boxes[j].lmks[8] / scale, boxes[j].lmks[9] / scale), 1, cv::Scalar(255, 0, 0), 4);
         }
 
         cv::imwrite("../test.png", img);
