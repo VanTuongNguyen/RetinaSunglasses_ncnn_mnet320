@@ -18,16 +18,16 @@ int main(int argc, char **argv)
     string imgPath;
     if (argc = 1)
     {
-        // imgPath = "../unit_test/unit_test_mask.png";
-        imgPath = "../unit_test/leo.jpg";
+        // imgPath = "../unit_test/vinai__camera_01607076857914.png";
+        imgPath = "../unit_test/test_gallery.png";
     }
     else if (argc = 2)
     {
         imgPath = argv[1];
     }
     // cv::VideoCapture cap(0);
-    string param = "../model/mobilenet0.25_201205_320_sunglasses_Final-sim.param";
-    string bin = "../model/mobilenet0.25_201205_320_sunglasses_Final-sim.bin";
+    string param = "../model/mobilenet0.25_201205_320_sunglasses_Final-sim_v2.param";
+    string bin = "../model/mobilenet0.25_201205_320_sunglasses_Final-sim_v2.bin";
     const int max_side = 320;
 
     // retinaface
